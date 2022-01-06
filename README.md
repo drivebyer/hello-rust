@@ -74,10 +74,58 @@
   - In Rust, the **return value** of the function is synonymous with the value of the final expression in the block of the body of a function. You can return early from a function by using the `return` keyword and specifying a value, but most functions return the last expression implicitly.
   - Blocks of code associated with the conditions in `if` expressions are sometimes called **arms**.
   - **Blocks of code evaluate to the last expression in them**.
-  - 
 
 
 ## 4. Understranding Ownership
+
+ownership 解决下面三个问题：
+
+- 解决重复 drop（free）同一片内存导致的问题 => **move** =  invalidates the copied variable + shallow copy;  move 导致了另外一个比较 tedious 的问题，该问题使用 borrow / references 解决
+- 解决野指针问题（即指针指向的内容已经被释放或者被别人使用）：
+
+
+
+- All data stored on the stack must have a known, fixed size. Data with an unknown size at compile time or a size that might change must be stored on the heap instead. 
+
+- ownership rules:
+  - Each value in Rust has a variable that’s called its **owner**.
+  - There can only be one owner at a time.
+  - When the owner goes out of scope, the value will be dropped.
+
+- In the case of a string literal, we know the contents at compile time, so the text is hardcoded directly into the final executable. This is why string literals are fast and efficient.（如果没记错的话，string literal 与 const 一样放到二进制的 rodata 段里）
+
+- Rust takes a different path: the memory is automatically returned once the variable that owns it goes out of scope.（Rust 一定在某个时候隐式的调用了 `free()` 函数）
+
+- When a variable goes out of scope, Rust calls a special function for us. This function is called [`drop`](https://doc.rust-lang.org/std/ops/trait.Drop.html#tymethod.drop), and it’s where the author of `String` can put the code to return the memory. Rust calls `drop` automatically at the closing curly bracket.
+
+- This is a problem: when `s2` and `s1` go out of scope, they will both try to free the same memory. This is known as a *double free* error and is one of the memory safety bugs we mentioned previously.
+
+- Here are some of the types that implement `Copy` trait:
+
+  - integer
+
+  - boolean
+  - float
+  - character
+  - tuple
+
+- The semantics for passing a value to a function are similar to those for assigning a value to a variable. Passing a variable to a function will move or copy, just as assignment does.（不愧是讲究一致性的语言...）
+- These ampersands are *references*, and they allow you to refer to some value without taking ownership of it.
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let len = calculate_length(&s1);
+    println!("The length of '{}' is {}.", s1, len);
+}
+
+fn calculate_length(s: &String) -> usize {
+    s.len()
+}// Here, s goes out of scope. But because it does not have ownership of what it refers to, nothing happens.
+```
+
+- But mutable references have one big restriction: you can have only one mutable reference to a particular piece of data at a time.
+- We *also* cannot have a mutable reference while we have an immutable one.
 
 ## 5. Using Structs to Structure Related Data
 
